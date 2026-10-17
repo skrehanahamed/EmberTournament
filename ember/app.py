@@ -246,7 +246,10 @@ class App:
         if a.demo or a.screen == "fight":
             ids = [a.p1, a.p2]
             stage = next(s for s in STAGES if s["id"] == a.stage) if a.stage else STAGES[0]
-            self.scene = FightScene(self, ids, True, stage, demo=a.demo)
+            if getattr(a, "boss", False):                     # dev: straight into the final boss fight
+                ids = [a.p1, "emperor"]
+                stage = next(s for s in STAGES if s["id"] == "volcano")
+            self.scene = FightScene(self, ids, True, stage, demo=a.demo, boss=getattr(a, "boss", False))
         elif a.screen == "select":
             self.scene = SelectScene(self, cpu=True)
         else:
@@ -313,6 +316,7 @@ def main(argv=None):
     p.add_argument("--mute", action="store_true")
     p.add_argument("--selftest", action="store_true", help="play a scripted finisher in a REAL window and write frame timings to /tmp/ember_selftest.txt")
     p.add_argument("--cpu-present", action="store_true", help="scale the picture on the CPU instead of the graphics chip (fallback)")
+    p.add_argument("--boss", action="store_true", help="start the fight against the Hollow Emperor (use with --screen fight, handy with --dev)")
     p.add_argument("--dev", action="store_true", help="developer mode: test hotkeys and a debug overlay in fights")
     p.add_argument("--fullscreen", action="store_true")
     args = p.parse_args(argv)

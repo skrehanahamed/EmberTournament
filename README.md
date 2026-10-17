@@ -119,7 +119,8 @@ You can also download build artifacts directly from the [Actions tab](https://gi
 * **Cinematic Supers and Finishers**: Charge your Ember Meter through combat to trigger screen-shattering Super Moves and match-winning cinematic Finishers.
 * **Full Controller Support**: Plug-and-play support for PlayStation DualSense (PS5), Xbox Wireless Controllers, and standard PC gamepads with vibration feedback and on-screen button prompts.
 * **Hardware GPU Scaling**: Native 1920x1080 internal resolution smoothly presented in resizable windowed or borderless fullscreen modes.
-* **Full Audio and Voice Acting**: Custom sound effects, dynamic punch/kick impacts, stage music, and voice-acted story narration.
+* **Full Audio, Voice Acting and Win Quotes**: Custom sound effects, dynamic punch/kick impacts, stage music, voice-acted story narration, and character-specific victory quotes.
+* **Victory Celebration Dances**: Unique animated post-match celebration dances for each combatant.
 
 ---
 
@@ -135,6 +136,7 @@ Six unique martial artists with distinct archetypes, hitboxes, frame data, and s
 | <img src="docs/images/portraits/valeria.png" width="90" height="90" alt="Valeria"/> <br/> **VALERIA** | **Rushdown** | A desert assassin wielding crimson embers. Blistering walk speed and relentless offensive pressure. | **Super**: *Crimson Tempest*<br/>**Finisher**: *Crimson Desert Storm* |
 | <img src="docs/images/portraits/rudra.png" width="90" height="90" alt="Rudra"/> <br/> **RUDRA** | **Brawler** | Bengal's Iron Fist. A delta wrestler whose sacred flames empower devastating close-combat barrages. | **Super**: *Tiger Roar*<br/>**Finisher**: *Bengal Tiger Flame* |
 | <img src="docs/images/portraits/mira.png" width="90" height="90" alt="Mira"/> <br/> **MIRA** | **Zoner** | Storm mage controlling the battlefield from afar with high-velocity electric projectiles and long reach. | **Super**: *Storm Caller*<br/>**Finisher**: *Thunder Judgement* |
+| <img src="docs/images/portraits/emperor.png" width="90" height="90" alt="The Hollow Emperor"/> <br/> **HOLLOW EMPEROR** | **Final Boss** | A dark, burning manifestation of pure void flame. Massive health bar, devastating combos, and terrifying screen control. | **Super**: *Void R-Sign*<br/>**Finisher**: *Hollow Eclipse* |
 
 ---
 
@@ -150,6 +152,7 @@ Six unique martial artists with distinct archetypes, hitboxes, frame data, and s
 ## Game Modes
 
 * **Arcade Story Mode**: Embark on a 7-chapter narrative journey as Reno. Battle through the tournament ranks, uncover the secret of the Dragon Cores, and defeat the Hollow Emperor in a climactic showdown. Features voiced dialogue and chapter art.
+* **Boss Encounter (`make dev-boss` or `--boss`)**: Jump directly into a final battle against The Hollow Emperor.
 * **Versus CPU**: Test your skills against computer-controlled opponents across three selectable difficulty levels (*Easy*, *Normal*, *Hard*).
 * **Versus 2-Player (Local)**: Challenge a friend locally on a shared keyboard or dual controllers.
 * **CPU vs CPU**: Watch AI combatants battle it out in demonstration mode.

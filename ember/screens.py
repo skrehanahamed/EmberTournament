@@ -1,10 +1,12 @@
 """Screens: title, controls, character select, VS splash, the fight itself and the result menu."""
+import json
 import math
+import os
 import random
 
 import pygame
 
-from .constants import (CHARS, CHAR_ORDER, FINISHERS, SUPERS, GOLD, GROUND, H, K, STAGES, W,
+from .constants import (DATA, CHARS, CHAR_ORDER, FINISHERS, SUPERS, GOLD, GROUND, H, K, STAGES, W,
                         WALL_L, WALL_R)
 from .settings import ACTIONS, ACTION_LABELS, RESERVED, ROUND_TIMES, WIN_COUNTS
 from .effects import FX, Ambient, Fireball, warm
@@ -56,6 +58,7 @@ class TitleScene(Scene):
         "main": ("", [
             ("ARCADE STORY", "arcade", "PLAY RENO'S STORY: SIX FIGHTS AND THE HOLLOW EMPEROR"),
             ("VERSUS", "versus", "FIGHT THE CPU, A FRIEND, OR WATCH CPU VS CPU"),
+            ("TRAINING", "training", "FULL GUIDE: LEARN EVERY MOVE STEP BY STEP, THEN FREE PRACTICE"),
             ("OPTIONS", "options", "SETTINGS, CONTROLS AND KEY BINDINGS"),
             ("QUIT", "quit", "LEAVE THE GAME"),
         ]),
@@ -138,6 +141,8 @@ class TitleScene(Scene):
                 self.open_menu("main")
             elif key == "vs_cpu":
                 self.app.goto(SelectScene(self.app, cpu=True))
+            elif key == "training":
+                self.app.goto(SelectScene(self.app, cpu=True, training=True))
             elif key == "vs_2p":
                 self.app.goto(SelectScene(self.app, cpu=False))
             elif key == "cvc":
@@ -183,11 +188,11 @@ class TitleScene(Scene):
             screen.blit(hd, (panel.centerx - hd.get_width() // 2, panel.y + 18))
             y0, gap = panel.y + 78, 76
         else:
-            y0, gap = top + 8 + slide * 0, 98
+            y0, gap = top + 4, 82
         for i, (label, key, desc) in enumerate(items):
             on = i == self.idx
             col = GOLD if on else (225, 220, 215)
-            size = (46 if on else 40) if sub else (66 if on else 54)
+            size = (46 if on else 40) if sub else (62 if on else 50)
             cx = W // 2 + slide
             y = y0 + i * gap
             if key == "level":
@@ -562,11 +567,12 @@ class SelectScene(Scene):
              "rudra": (8, 6, 8, 6), "reno": (7, 7, 7, 7)}
     STAT_NAMES = ("POWER", "SPEED", "HEALTH", "RANGE")
 
-    def __init__(self, app, cpu, cvc=False):
+    def __init__(self, app, cpu, cvc=False, training=False):
         super().__init__(app)
         self.cpu = cpu or cvc
         self.cvc = cvc
-        self.cpu_auto = self.cpu and not self.cvc      # versus the CPU: it picks its own fighter once P1 has chosen
+        self.training = training                      # one human picks both: first the fighter, then the dummy
+        self.cpu_auto = self.cpu and not self.cvc and not training      # versus the CPU: it picks its own fighter once P1 has chosen
         self.cpu_t = 0
         self.cur = [0, 3]               # grid cell of each cursor
         self.ready = [False, False]
@@ -667,15 +673,18 @@ class SelectScene(Scene):
             return
         k = ev.key
         if k == pygame.K_ESCAPE:
+            if self.training and self.ready[0] and not self.ready[1]:
+                self.confirm(0)                       # step back to choosing your own fighter
+                return
             self.app.goto(TitleScene(self.app))
             return
         pad_no = getattr(ev, "pad", None)
-        if self.cpu_auto or pad_no is not None:
-            # one human: every key (and any pad) drives P1.  Two humans: pad 0 = P1, pad 1 = P2.
-            slot = 0 if self.cpu_auto else min(1, pad_no or 0)
+        if self.cpu_auto or self.training or pad_no is not None:
+            # one human: every key (and any pad) drives P1 (and the dummy in training).  Two humans: pad 0 = P1, pad 1 = P2.
+            slot = (0 if not self.ready[0] else 1) if self.training else (0 if self.cpu_auto else min(1, pad_no or 0))
             dirs = {pygame.K_a: (-1, 0), pygame.K_d: (1, 0), pygame.K_w: (0, -1), pygame.K_s: (0, 1),
                     pygame.K_LEFT: (-1, 0), pygame.K_RIGHT: (1, 0), pygame.K_UP: (0, -1), pygame.K_DOWN: (0, 1)}
-            if pad_no is not None or self.cpu_auto:
+            if pad_no is not None or self.cpu_auto or self.training:
                 if k in dirs:
                     if not self.ready[slot]:
                         self.move_cursor(slot, *dirs[k])
@@ -722,7 +731,7 @@ class SelectScene(Scene):
         if self.go_t is not None:
             self.go_t += 1
             if self.go_t > 60:
-                self.app.goto(StageScene(self.app, list(self.pick), self.cpu, self.cvc))
+                self.app.goto(StageScene(self.app, list(self.pick), self.cpu, self.cvc, self.training))
 
     # ---- drawing -----------------------------------------------------------------
     def big_sprite(self, cid, slot, ready):
@@ -786,7 +795,7 @@ class SelectScene(Scene):
         pygame.draw.polygon(screen, (22, 10, 14), pts)
         pygame.draw.polygon(screen, tint, pts, 5)
         pygame.draw.line(screen, tint, pts[0], pts[1], 12)
-        tag = ("CPU 1" if self.cvc else "PLAYER 1") if slot == 0 else ("CPU 2" if self.cvc else ("CPU" if self.cpu else "PLAYER 2"))
+        tag = ("CPU 1" if self.cvc else "PLAYER 1") if slot == 0 else ("CPU 2" if self.cvc else ("DUMMY" if self.training else "CPU" if self.cpu else "PLAYER 2"))
         random_cell = self.GRID[self.cur[slot]] == "random" and not self.pick[slot]
         # portrait medallion on the outer side
         r = 66
@@ -913,7 +922,7 @@ class SelectScene(Scene):
         if PADS.pads:
             blit_hint(screen, self.app, [("", "dpad", "MOVE"), ("", "kick", "CONFIRM"), ("", "special", "BACK")], H - 40, 15, (205, 200, 195))
         else:
-            hint = self.a.text(("CPU 1: A/D/W/S + F        CPU 2: ARROWS + ENTER" if self.cvc else "YOU: WASD OR ARROWS + ENTER / F        " + ("THE CPU PICKS ITS OWN FIGHTER" if self.cpu else "P2: ARROWS + ENTER")), 15, (205, 200, 195), thick=2)
+            hint = self.a.text(("CPU 1: A/D/W/S + F        CPU 2: ARROWS + ENTER" if self.cvc else "YOU: WASD OR ARROWS + ENTER / F        " + ("CHOOSE YOUR FIGHTER, THEN THE DUMMY" if self.training else "THE CPU PICKS ITS OWN FIGHTER" if self.cpu else "P2: ARROWS + ENTER")), 15, (205, 200, 195), thick=2)
             screen.blit(hint, (W // 2 - hint.get_width() // 2, H - 36))
         if self.go_t is not None:
             draw_dim(screen, min(230, self.go_t * 5))
@@ -923,9 +932,9 @@ class SelectScene(Scene):
 class StageScene(Scene):
     OPTIONS = STAGES + [{"id": "random", "name": "RANDOM", "fx": ""}]
 
-    def __init__(self, app, ids, cpu, cvc):
+    def __init__(self, app, ids, cpu, cvc, training=False):
         super().__init__(app)
-        self.ids, self.cpu, self.cvc = ids, cpu, cvc
+        self.ids, self.cpu, self.cvc, self.training = ids, cpu, cvc, training
         self.idx = 0
         self.t = 0
         self.go = None
@@ -940,7 +949,7 @@ class StageScene(Scene):
             return
         k = ev.key
         if k == pygame.K_ESCAPE:
-            self.app.goto(SelectScene(self.app, self.cpu and not self.cvc, self.cvc))
+            self.app.goto(SelectScene(self.app, self.cpu and not self.cvc, self.cvc, self.training))
         elif k in (pygame.K_LEFT, pygame.K_a):
             self.idx = (self.idx - 1) % len(self.OPTIONS)
             self.audio.sfx("ui_move")
@@ -958,7 +967,7 @@ class StageScene(Scene):
             if self.go > 30:
                 opt = self.OPTIONS[self.idx]
                 stage = random.choice(STAGES) if opt["id"] == "random" else opt
-                self.app.goto(VsScene(self.app, self.ids, self.cpu, stage, cvc=self.cvc))
+                self.app.goto(VsScene(self.app, self.ids, self.cpu, stage, cvc=self.cvc, training=self.training))
 
     def draw(self, screen):
         screen.blit(self.a.image("select_bg", alpha=False), (0, 0))
@@ -996,8 +1005,9 @@ class StageScene(Scene):
 
 # ====================================================================== versus splash
 class VsScene(Scene):
-    def __init__(self, app, ids, cpu, stage, cvc=False, arcade=None, boss=False):
+    def __init__(self, app, ids, cpu, stage, cvc=False, arcade=None, boss=False, training=False):
         super().__init__(app)
+        self.training = training
         self.ids, self.cpu, self.stage, self.cvc = ids, cpu, stage, cvc
         self.arcade, self.boss = arcade, boss
         self.t = 0
@@ -1016,7 +1026,11 @@ class VsScene(Scene):
         self.embers.update()
         if self.t == 20:
             self.audio.sfx("gong", 0.5)
-        if self.t > 155:
+        if self.t > 155 or (self.training and self.t > 40):
+            if self.training:
+                from .training import TrainingScene
+                self.app.goto(TrainingScene(self.app, self.ids, self.stage))
+                return
             self.app.goto(FightScene(self.app, self.ids, self.cpu, self.stage, cvc=self.cvc, arcade=self.arcade, boss=self.boss))
 
     def draw(self, screen):
@@ -1031,9 +1045,6 @@ class VsScene(Scene):
             img = pygame.transform.smoothscale(img, (int(img.get_width() * scale), 620))
             if slot == 1:
                 img = pygame.transform.flip(img, True, False)
-                if self.boss:
-                    img = img.copy()
-                    img.fill((120, 60, 200, 255), special_flags=pygame.BLEND_RGBA_MULT)
             final = 160 if slot == 0 else W - 160 - img.get_width()
             start = -img.get_width() if slot == 0 else W
             x = start + (final - start) * ease
@@ -1080,11 +1091,22 @@ class FightScene(Scene):
             f_.pad_slot = c_.slot if isinstance(c_, KeyboardController) else None      # which controller shakes for this fighter
         PADS.level = self.cfg.rumble
         self.led_flash = {}
-        if boss:                                    # the Hollow Emperor: a dark, tougher copy of the second fighter
-            e = self.f[1]
-            e.spec.update(name="EMPEROR", role="BOSS", hp=int(e.spec["hp"] * 1.7), accent=(150, 70, 255), dmg=1.2,
-                          finisher="HOLLOW ECLIPSE", super_name="VOID R-SIGN")
-            e.tint = (125, 70, 205)
+        for f_ in self.f:
+            f_.prewarm_dance()
+        try:
+            self.win_quotes = json.load(open(os.path.join(DATA, "quotes.json")))
+        except (OSError, ValueError):
+            self.win_quotes = {}
+        self.match_hold = 330 if arcade else 230          # how long the victory moment lasts before an arcade fight moves on
+        self.victory_t = 0
+        self.focus_off = 0
+        self.phase2, self.p2_seq = False, 0                # the boss' second form (see begin_phase2)
+        self._aura_v = []
+        if boss:
+            for fr in self.fxa["super_aura"].frames:
+                im = pygame.transform.smoothscale(fr.img, (int(fr.w * 1.5), int(fr.h * 1.5)))
+                im.fill((170, 70, 255, 255), special_flags=pygame.BLEND_RGBA_MULT)
+                self._aura_v.append(im)
         self.hud = Hud(self.a, self.f)
         self.wins = [0, 0]
         self.round = 1
@@ -1299,6 +1321,12 @@ class FightScene(Scene):
                     self.phase, self.pt = "match", 0
                     w = 0 if self.wins[0] >= self.wins_needed else 1
                     self.match_winner = w
+                    self.victory_t = 0
+                    self.f[w].dancing = True
+                    self.f[w].win()
+                    self.zoom_target = 1.32
+                    self.focus_off = 0 if self.arcade else 270        # versus: the winner stands left of centre, the menu goes on the right
+                    self.focus_x = self.f[w].x + self.focus_off
                     self.banner = (f"{self.f[w].spec['name']} WINS!", 0)
                     self.audio.announce("winner" if (self.boss and w == 1) else f"win_{self.ids[w]}", 1.2)
                     self.pending_cheer = 70
@@ -1306,6 +1334,14 @@ class FightScene(Scene):
                     self.round += 1
                     self.start_round()
         elif self.phase == "match":
+            self.victory_t += 1
+            self.audio.tick_duck()
+            self.focus_x += (self.f[self.match_winner].x + self.focus_off - self.focus_x) * 0.1
+            if self.victory_t == 150 and not self.arcade:
+                self.banner = ("", 0)
+            if self.victory_t == 100:
+                self.audio.quote(self.f[self.match_winner].cid)
+                self.buzz(self.f[self.match_winner], "round")
             if getattr(self, "pending_cheer", 0):
                 self.pending_cheer -= 1
                 if self.pending_cheer == 0:
@@ -1321,7 +1357,7 @@ class FightScene(Scene):
             return
         k = ev.key
         if self.arcade and self.phase == "match" and k in (pygame.K_RETURN, pygame.K_SPACE):
-            self.pt = max(self.pt, 231)
+            self.pt = max(self.pt, self.match_hold + 1)
             return
         if self.phase == "match" and self.pt > 150 and not self.arcade:
             if k in (pygame.K_w, pygame.K_UP):
@@ -1372,6 +1408,7 @@ class FightScene(Scene):
         ("F5", "P2 down to 5 HP (one hit)"), ("F6", "heal both"), ("F7", "match point (P1 needs 1 win)"),
         ("F8", "P2 = dummy / CPU"), ("F9", "FINISHER now"), ("F10", "freeze;  . = one tick"),
         ("[ / ]", "P1 wins -/+  (round gems)"), ("F12", "instant KO P2 (real rules)"),
+        ("1", "new fight vs the HOLLOW EMPEROR (boss)"), ("2", "boss: trigger FINAL FORM now"),
     ]
 
     def dev_say(self, text):
@@ -1416,6 +1453,15 @@ class FightScene(Scene):
             self.wins[0] = max(0, self.wins[0] - 1)
         elif k == pygame.K_RIGHTBRACKET:
             self.wins[0] = min(self.wins_needed, self.wins[0] + 1)
+        elif k in (pygame.K_1, pygame.K_END):
+            self.app.goto(FightScene(self.app, [p1.cid, "emperor"], True, self.stage, boss=True))
+            return True
+        elif k in (pygame.K_2, pygame.K_HOME):
+            if self.boss and not self.phase2 and self.phase == "fight" and self.fin is None:
+                self.begin_phase2()
+                self.dev_say("FINAL FORM")
+            else:
+                self.dev_say("NOT A BOSS FIGHT  (press 1)" if not self.boss else "ALREADY IN FINAL FORM")
         elif k == pygame.K_F12:
             if self.phase == "fight" and self.fin is None:
                 p2.hp = 1
@@ -1479,7 +1525,9 @@ class FightScene(Scene):
             self.zoom_target = self.fin_frame(*self.fin_pair, 1.25)       # keep both fighters framed as the loser flies back
         self.zoom += (self.zoom_target - self.zoom) * 0.07
         self.super_dark = max(0, self.super_dark - 1)
-        want_dark = 150 if self.fin else (110 if self.super_dark else 0)
+        want_dark = 150 if self.fin else (110 if self.super_dark else (70 if self.phase2 else 0))
+        if self.p2_seq > 0:
+            want_dark = 160
         self.dark += max(-6, min(6, want_dark - self.dark))
         self.show_hint = max(0, self.show_hint - 1)
         self.flash = max(0, self.flash - 1)
@@ -1487,6 +1535,17 @@ class FightScene(Scene):
             self.shake_t -= 1
             if self.shake_t == 0:
                 self.shake_amp = 0
+        if self.p2_seq > 0:                           # the boss' transformation: everything freezes, the effects play
+            self.p2_seq -= 1
+            if self.p2_seq in (150, 120, 90):
+                self.rings.append([self.f[1].x, GROUND - 200, 0, (170, 80, 255)])
+                self.shake(14)
+                self.buzz(self.f[0], "hit_heavy")
+                self.buzz(self.f[1], "hit_heavy")
+            for e in self.fx_list:
+                e.update()
+            self.fx_list = [e for e in self.fx_list if not e.dead]
+            return
         if self.hitstop > 0:
             self.hitstop -= 1
             for e in self.fx_list:                    # the super's opening burst keeps animating during the freeze
@@ -1530,6 +1589,13 @@ class FightScene(Scene):
             e.update()
         self.fx_list = [e for e in self.fx_list if not e.dead]
         if live:
+            if self.boss and not self.phase2 and self.fin is None and p2.hp <= p2.spec["hp"] * 0.5:
+                self.begin_phase2()
+                return
+            if self.phase2:
+                p2.energy = 100.0
+                if self.hud.t % 480 == 0:
+                    p2.super = 100.0
             if self.round_seconds:
                 self.timer -= 1
             if p1.hp <= 0 and p2.hp <= 0:
@@ -1544,7 +1610,7 @@ class FightScene(Scene):
                 else:
                     self.end_round(0 if p1.hp > p2.hp else 1, "TIME UP")
         self.phase_logic()
-        if self.arcade and self.phase == "match" and self.pt > 230 and not getattr(self, "_arc_done", False):
+        if self.arcade and self.phase == "match" and self.pt > self.match_hold and not getattr(self, "_arc_done", False):
             self._arc_done = True
             self.arcade.fight_done(self)
             return
@@ -1636,6 +1702,58 @@ class FightScene(Scene):
                     and (self.cfg.finisher == 2 or (self.cfg.finisher == 1 and self.wins[a.slot] + 1 >= self.wins_needed))
             and self.cfg.finisher != 0):
                 self.begin_finisher(a, d, direction)
+
+    # ---- boss second form -----------------------------------------------------------
+    BOSS_LINE = "I WILL NOT BE HOLLOW AGAIN!"
+
+    def begin_phase2(self):
+        """At half health the Hollow Emperor gets a second wind: a transformation, then faster, harder, more aggressive."""
+        e = self.f[1]
+        self.phase2, self.p2_seq = True, 190
+        self.f[0].combo_taken = 0
+        e.hp = int(e.spec["hp"] * 0.6)
+        e.state, e.timer, e.move = State.IDLE, 0, None
+        e.vx = e.vy = 0.0
+        e.y = 0.0
+        e.spec["walk"] *= 1.25
+        e.spec["back"] *= 1.25
+        e.spec["dmg"] *= 1.2
+        e.super = 100.0
+        e.tint = (255, 150, 175)                                   # hotter, redder than the first form
+        e.spec.update(role="FINAL FORM", accent=(255, 50, 90))
+        self.hud.set_form2(1, e)
+        if isinstance(e.controller, AIController):
+            e.controller.level = 1.2
+        self.fireballs.clear()
+        self.rings.append([e.x, GROUND - 200, 0, (170, 80, 255)])
+        self.rings.append([e.x, GROUND - 200, -8, (255, 255, 255)])
+        burst = FX(self.fxa["super_burst"], e.x, GROUND - e.stance_h * 0.5, rate=5, scale=3.4)
+        burst.ignore_hitstop = True
+        self.fx_list.append(burst)
+        self.flash = 8
+        self.shake_t, self.shake_amp = 60, int(18 * (0, 0.5, 1.0)[self.cfg.shake])
+        self.zoom_target = 1.0
+        self.audio.sfx("gong", 1.0)
+        self.audio.sfx("hit_heavy", 1.0)
+        self.audio.effort(e.slot, e.spec["voice"], 1.0, "win")
+        self.audio.music("final")
+        for f in self.f:
+            self.buzz(f, "fin_boom", 0.7)
+
+    def draw_phase2(self, screen):
+        if self.p2_seq <= 0:
+            return
+        t = 190 - self.p2_seq
+        k = min(1.0, t / 14)
+        title = self.a.text("FINAL FORM", 120, (200, 110, 255), thick=14)
+        scale = 1.0 + (1 - k) * 1.8
+        title = pygame.transform.smoothscale(title, (int(title.get_width() * scale), int(title.get_height() * scale)))
+        title.set_alpha(int(255 * min(1, t / 6) * min(1, self.p2_seq / 20)))
+        screen.blit(title, (W // 2 - title.get_width() // 2, 330 - title.get_height() // 2))
+        if t > 50:
+            line = self.a.text(self.BOSS_LINE, 36, (255, 255, 255), thick=5)
+            line.set_alpha(int(255 * min(1, (t - 50) / 14) * min(1, self.p2_seq / 20)))
+            screen.blit(line, (W // 2 - line.get_width() // 2, 470))
 
     # ---- Ember Finisher ----------------------------------------------------------
     FIN_WINDOW = 270           # ticks (4.5 s) the winner has to enter the command
@@ -1922,9 +2040,14 @@ class FightScene(Scene):
         order = sorted(self.f, key=lambda f: (f.state in (State.ATTACK,), f.slot))
         for f in self.f:
             f.draw_shadow(world, ox, oy)
-            if f.super >= 100 and f.state not in (State.KO, State.KNOCKDOWN, State.GETUP):
+            if self.phase2 and f is self.f[1] and f.state not in (State.KO,):
+                a = self._aura_v[(self.hud.t // 3) % len(self._aura_v)]
+                world.blit(a, (int(f.x - a.get_width() / 2 + ox), int(GROUND - f.y - a.get_height() + 40 + oy)))
+            elif f.super >= 100 and f.state not in (State.KO, State.KNOCKDOWN, State.GETUP):
                 a = self._aura[(self.hud.t // 4) % len(self._aura)]
                 world.blit(a, (int(f.x - a.get_width() / 2 + ox), int(GROUND - f.y - a.get_height() + 20 + oy)))
+        if self.phase == "match" and self.victory_t:
+            self.draw_spotlight(world, self.f[self.match_winner], ox, oy)
         for e in self.fx_list:
             if e.behind:
                 e.draw(world, ox, oy)
@@ -1937,7 +2060,7 @@ class FightScene(Scene):
             if not e.behind:
                 e.draw(world, ox, oy)
         self.draw_rings(world, ox, oy)
-        if self.dev and self.dev_on and self.dev_boxes:
+        if (self.dev and self.dev_on and self.dev_boxes) or getattr(self, "train_boxes", False):
             self.draw_dev(world, None)
         if zoomed:
             cw, ch = int(W / self.zoom), int(H / self.zoom)
@@ -1954,6 +2077,7 @@ class FightScene(Scene):
         if self.dev and self.dev_on:
             self.draw_dev(None, screen)
         self.draw_banner(screen)
+        self.draw_phase2(screen)
         if self.flash:
             s = pygame.Surface((W, H))
             s.fill((255, 255, 255))
@@ -1971,6 +2095,7 @@ class FightScene(Scene):
             screen.blit(hint, (W // 2 - hint.get_width() // 2, H - 18 - hint.get_height()))
         if self.phase == "match":
             self.draw_winner_card(screen)
+            self.draw_quote(screen)
         if self.phase == "match" and self.pt > 150 and not self.arcade:
             self.draw_result(screen)
         if self.paused:
@@ -2002,6 +2127,47 @@ class FightScene(Scene):
         by = 470 if text.startswith("FINISH HIM") else (590 if "WINS" in text and self.phase == "match" else (540 if text == "FINISHER!" else 400))
         screen.blit(surf, (W // 2 - surf.get_width() // 2, by - surf.get_height() // 2))
 
+    def draw_spotlight(self, world, w, ox, oy):
+        """A soft coloured beam behind the winner while they celebrate."""
+        k = min(1.0, self.victory_t / 30)
+        cache = self.__dict__.setdefault("_spot", {})
+        key = tuple(w.spec["accent"])
+        beam = cache.get(key)
+        if beam is None:
+            beam = pygame.Surface((760, 1000), pygame.SRCALPHA)
+            for y in range(1000):
+                half = int(70 + 290 * y / 1000)
+                a = int(95 * (1 - y / 1000) ** 0.5 * 0.9)
+                pygame.draw.line(beam, key + (max(0, min(255, a)),), (380 - half, y), (380 + half, y))
+            pygame.draw.ellipse(beam, key + (110,), (60, 930, 640, 70))
+            cache[key] = beam
+        beam.set_alpha(int(255 * k))
+        world.blit(beam, (int(w.x - 380 + ox), GROUND - 980 + oy), special_flags=pygame.BLEND_RGBA_ADD if False else 0)
+
+    def draw_quote(self, screen):
+        if self.victory_t < 100:
+            return
+        w = self.f[self.match_winner]
+        text = self.win_quotes.get(w.cid)
+        if not text:
+            return
+        # versus: on the right under the menu (the winner stands on the left); arcade: centred, low
+        cx, y0 = (W // 2, 800) if self.arcade else (1430, 740)
+        size = 36 if self.arcade else 28
+        n = int((self.victory_t - 100) * 0.9)
+        k = min(1.0, (self.victory_t - 100) / 14)
+        full = self.a.text('"' + text + '"', size, (255, 255, 255), thick=5)
+        img = self.a.text('"' + text[:n] + ('"' if n >= len(text) else ""), size, (255, 255, 255), thick=5) if n > 0 else None
+        name = self.a.text(w.spec["name"] if w.cid != "emperor" else "THE HOLLOW EMPEROR", 18, tuple(w.spec["accent"]), thick=3)
+        bw = max(full.get_width(), name.get_width()) + 80
+        band = pygame.Surface((bw, 120), pygame.SRCALPHA)
+        pygame.draw.rect(band, (10, 5, 10, int(210 * k)), band.get_rect(), border_radius=16)
+        pygame.draw.rect(band, tuple(w.spec["accent"]) + (int(255 * k),), band.get_rect(), 4, border_radius=16)
+        screen.blit(band, (cx - bw // 2, y0))
+        screen.blit(name, (cx - name.get_width() // 2, y0 + 16))
+        if img:
+            screen.blit(img, (cx - full.get_width() // 2, y0 + 56))
+
     def draw_winner_card(self, screen):
         """Match end: the winner's portrait in a ring above a gold 'NAME WINS!' plate."""
         w = self.match_winner
@@ -2032,8 +2198,8 @@ class FightScene(Scene):
         items = ["REMATCH", "CHARACTER SELECT", "MAIN MENU"]
         for i, it in enumerate(items):
             on = i == self.result_idx
-            t = self.a.text((">  " + it + "  <") if on else it, 40 if on else 34, GOLD if on else (225, 225, 225), thick=5)
-            screen.blit(t, (W // 2 - t.get_width() // 2, 560 + i * 80))
+            t = self.a.text((">  " + it + "  <") if on else it, 36 if on else 30, GOLD if on else (225, 225, 225), thick=5)
+            screen.blit(t, (1430 - t.get_width() // 2, 500 + i * 80))
 
     def draw_pause(self, screen):
         draw_dim(screen, 170)

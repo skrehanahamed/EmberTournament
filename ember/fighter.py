@@ -73,6 +73,7 @@ class Fighter:
         self.facing = 1 if slot == 0 else -1
         self.super = 0.0
         self.dash_dir = 0
+        self.dancing = False
         self.reset(0)
 
     # ------------------------------------------------------------------ setup
@@ -168,6 +169,8 @@ class Fighter:
         if st == State.GETUP:
             return "getup", min(len(A["getup"]) - 1, t // 6)
         if st == State.WIN:
+            if self.dancing and "dance" in A:                            # victory dance after a match win (loops)
+                return "dance", int(t / DANCE_TICKS) % len(A["dance"])
             return "win", min(len(A["win"]) - 1, t // 8)
         return "idle", 0
 
@@ -182,7 +185,32 @@ class Fighter:
 
     def frame(self):
         name, idx = self.current()
+        if name == "dance":                          # cross-fade towards the next dance pose, so the motion flows
+            n = len(self.A["dance"])
+            pos = self.timer / DANCE_TICKS
+            k = pos - int(pos)
+            k = k * k * (3 - 2 * k)
+            return self.dance_blend(idx, (idx + 1) % n, round(k * DANCE_STEPS))
         return self.A[name][idx]
+
+    def prewarm_dance(self):
+        """Build every in-between frame up front so the dance never hitches."""
+        n = len(self.A["dance"]) if "dance" in self.A else 0
+        for i in range(n):
+            for st in range(1, DANCE_STEPS):
+                self.dance_blend(i, (i + 1) % n, st)
+
+    def dance_blend(self, i, j, step):
+        """A frame that is `step`/DANCE_STEPS of the way from dance pose i to pose j (built once, then cached)."""
+        if step <= 0:
+            return self.A["dance"][i]
+        if step >= DANCE_STEPS:
+            return self.A["dance"][j]
+        cache = self.__dict__.setdefault("_dance_cache", {})
+        key = (i, step)
+        if key not in cache:
+            cache[key] = _blend_frames(self.A["dance"][i], self.A["dance"][j], step / DANCE_STEPS)
+        return cache[key] or self.A["dance"][i]
 
     def tip_world(self):
         fr = self.frame()
@@ -477,6 +505,8 @@ class Fighter:
                 timg.fill((35, 0, 60, 0), special_flags=pygame.BLEND_RGB_ADD)
                 self._tint_cache[key] = timg
             img = timg
+        if self.state == State.WIN and self.dancing and "dance" not in self.A:     # no dance art: a happy hop and sway
+            pos = (pos[0] + math.sin(self.timer * 0.12) * 14, pos[1] - abs(math.sin(self.timer * 0.16)) * 26)
         if self.state == State.STUNNED:                # the finisher's victim trembles
             pos = (pos[0] + random.randint(-5, 5), pos[1] + random.randint(-2, 2))
         if self.flash:
@@ -492,6 +522,44 @@ class Fighter:
         surf = pygame.Surface((w, 26), pygame.SRCALPHA)
         pygame.draw.ellipse(surf, (0, 0, 0, 110), surf.get_rect())
         screen.blit(surf, (int(self.x - w / 2 + ox), GROUND - 12 + oy))
+
+
+DANCE_TICKS = 8.0        # game ticks each dance pose lasts (slow and smooth)
+DANCE_STEPS = 4          # in-between blends per pose
+
+
+def _blend_frames(a, b, t):
+    """Cross-fade two sprite frames (placed by their anchors) into one new frame.
+    Returns None when the two poses differ too much: a fade would show a ghost double image, so the pose is simply held."""
+    import numpy as np
+    from .assets import Frame
+    x0 = int(min(a.ox, b.ox))
+    y0 = int(min(a.oy, b.oy))
+    x1 = int(max(a.ox + a.w, b.ox + b.w) + 1)
+    y1 = int(max(a.oy + a.h, b.oy + b.h) + 1)
+    W_, H_ = x1 - x0, y1 - y0
+    acc = np.zeros((H_, W_, 4), dtype=np.float32)
+    for fr, wgt in ((a, 1.0 - t), (b, t)):
+        rgb = pygame.surfarray.array3d(fr.img).transpose(1, 0, 2).astype(np.float32)
+        al = pygame.surfarray.array_alpha(fr.img).T.astype(np.float32) / 255.0
+        ox, oy = int(fr.ox - x0), int(fr.oy - y0)
+        sl = (slice(oy, oy + fr.h), slice(ox, ox + fr.w))
+        acc[sl][..., :3] += rgb * (al * wgt)[..., None]
+        acc[sl][..., 3] += al * wgt
+    wa = np.zeros((H_, W_), dtype=bool)
+    wb = np.zeros((H_, W_), dtype=bool)
+    for fr, m in ((a, wa), (b, wb)):
+        al_ = pygame.surfarray.array_alpha(fr.img).T > 40
+        m[int(fr.oy - y0):int(fr.oy - y0) + fr.h, int(fr.ox - x0):int(fr.ox - x0) + fr.w] = al_
+    if (wa & wb).sum() < 0.93 * (wa | wb).sum():
+        return None
+    al = acc[..., 3]
+    rgb = np.where(al[..., None] > 1e-3, acc[..., :3] / np.maximum(al[..., None], 1e-3), 0)
+    out = np.dstack([rgb, al * 255.0]).clip(0, 255).astype(np.uint8)
+    surf = pygame.Surface((W_, H_), pygame.SRCALPHA)
+    pygame.surfarray.pixels3d(surf)[:] = out[..., :3].transpose(1, 0, 2)
+    pygame.surfarray.pixels_alpha(surf)[:] = out[..., 3].T
+    return Frame(surf, {"ox": x0, "oy": y0})
 
 
 class _IdleCtl:

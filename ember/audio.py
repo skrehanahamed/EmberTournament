@@ -103,6 +103,19 @@ class AudioManager:
         self._duck(True)
         return True
 
+    def quote(self, cid):
+        """A fighter's victory line (always plays, music dips while it does)."""
+        if not self.enabled:
+            return False
+        path = os.path.join(DATA, "audio", "quotes", cid + ".mp3")
+        if not os.path.exists(path):
+            return False
+        s = self._sound(path)
+        s.set_volume(min(1.0, 1.0 * self.vol_voice))
+        self.story_ch.play(s)
+        self._duck(True)
+        return True
+
     def stop_story(self):
         if self.enabled:
             self.story_ch.stop()

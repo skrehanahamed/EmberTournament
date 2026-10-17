@@ -53,10 +53,14 @@ CHARS = {
     "mira": dict(name="MIRA", title="Storm Mage", role="ZONER", hp=950, walk=5.6, back=4.8,
                  dmg=0.98, body_w=64, fireball="cyan", fb_speed=21, accent=(60, 190, 255), voice="f",
                  blurb=["She commands lightning from afar.", "The storm told her where the", "last Core sleeps."]),
+    # final boss of the Arcade Story (not on the roster)
+    "emperor": dict(name="EMPEROR", title="The Hollow Emperor", role="BOSS", hp=1700, walk=5.8, back=4.8,
+                    dmg=1.2, body_w=70, fireball="reno", fb_speed=17, accent=(150, 70, 255), voice="m",
+                    blurb=["A dark, burning copy of Reno.", "He wants the fire back, to be whole.", ""]),
 }
 SUPERS = {"kaito": "DRAGON BREATH", "brutus": "MAGMA CRUSH", "valeria": "CRIMSON TEMPEST", "mira": "STORM CALLER",
-          "rudra": "TIGER ROAR", "reno": "R-SIGN BLAST"}
-FINISHERS = {'kaito': 'DRAGON FIST OF EMBERS', 'brutus': 'MOLTEN HAMMER', 'valeria': 'CRIMSON DESERT STORM', 'mira': 'THUNDER JUDGEMENT', 'rudra': 'BENGAL TIGER FLAME', 'reno': 'R-SIGN ANNIHILATION'}
+          "rudra": "TIGER ROAR", "reno": "R-SIGN BLAST", "emperor": "VOID R-SIGN"}
+FINISHERS = {'kaito': 'DRAGON FIST OF EMBERS', 'brutus': 'MOLTEN HAMMER', 'valeria': 'CRIMSON DESERT STORM', 'mira': 'THUNDER JUDGEMENT', 'rudra': 'BENGAL TIGER FLAME', 'reno': 'R-SIGN ANNIHILATION', 'emperor': 'HOLLOW ECLIPSE'}
 CHAR_ORDER = ["kaito", "brutus", "valeria", "mira", "rudra", "reno"]
 
 P1_KEYS = dict(left="a", right="d", up="w", down="s", light="f", heavy="g", kick="h", special="t", super="y")

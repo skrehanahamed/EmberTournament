@@ -62,15 +62,11 @@ class Portraits:
         key = (who, height, flip, dim)
         img = self.cache.get(key)
         if img is None:
-            pid = "reno" if who == "emperor" else who
-            src = self.a.image(f"portrait_{pid}")
+            src = self.a.image(f"portrait_{who}")
             k = height / src.get_height()
             img = pygame.transform.smoothscale(src, (max(1, int(src.get_width() * k)), height))
             if flip:
                 img = pygame.transform.flip(img, True, False)
-            if who == "emperor":
-                img.fill((120, 60, 200, 255), special_flags=pygame.BLEND_RGBA_MULT)
-                img.fill((40, 0, 70, 0), special_flags=pygame.BLEND_RGB_ADD)
             if dim:
                 img.fill((105, 105, 120, 255), special_flags=pygame.BLEND_RGBA_MULT)
             self.cache[key] = img
@@ -469,7 +465,7 @@ class ArcadeRun:
         self.steps.append(("results",))
 
     def start(self):
-        for cid in (PLAYER, "kaito", "valeria", "mira", "brutus", "rudra"):
+        for cid in (PLAYER, "kaito", "valeria", "mira", "brutus", "rudra", "emperor"):
             self.a.load_character(cid)
         self.a.load_fx()
         self.advance()
@@ -506,7 +502,8 @@ class ArcadeRun:
             ch = step[1]
             self.cur = ch
             stage = next(s for s in STAGES if s["id"] == ch["stage"])
-            app.goto(VsScene(app, [PLAYER, ch["opponent"]], True, stage, arcade=self, boss=bool(ch.get("boss"))))
+            boss = bool(ch.get("boss"))
+            app.goto(VsScene(app, [PLAYER, "emperor" if boss else ch["opponent"]], True, stage, arcade=self, boss=boss))
         elif kind == "results":
             app.goto(ResultScene(app, self))
 

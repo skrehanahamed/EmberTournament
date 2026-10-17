@@ -59,6 +59,11 @@ class Hud:
         return out
 
     # ------------------------------------------------------------------
+    def set_form2(self, slot, f):
+        """Boss second form: hotter portrait, new name tag."""
+        f.form2 = True
+        self.portraits[slot] = self._portrait(f.cid, tint=(255, 120, 150))
+
     def update(self):
         self.t += 1
         for i, f in enumerate(self.f):
@@ -141,7 +146,7 @@ class Hud:
 
     def draw_plate(self, screen, slot, f):
         """Name plate (static, so it is drawn once into a cached image)."""
-        key = (slot, f.cid)
+        key = (slot, f.cid, f.spec["name"], f.spec["role"], tuple(f.spec["accent"]))
         cache = self.__dict__.setdefault("_plates", {})
         img = cache.get(key)
         w, h = 400, 44
@@ -227,6 +232,12 @@ class Hud:
         pygame.draw.circle(screen, (255, 236, 160), (cx, cy), r + 3)
         pygame.draw.circle(screen, (222, 160, 52), (cx, cy), r - 2)
         pygame.draw.circle(screen, tuple(f.spec["accent"]), (cx, cy), r - 6)
+        if getattr(f, "form2", False):                # the boss' second form: a throbbing red-violet halo around the portrait
+            k = 0.5 + 0.5 * math.sin(self.t * 0.2)
+            halo = pygame.Surface((r * 2 + 90, r * 2 + 90), pygame.SRCALPHA)
+            for i, (rad, a) in enumerate(((r + 40, 40), (r + 28, 70), (r + 16, 110))):
+                pygame.draw.circle(halo, (255, 60, 110, int(a * (0.6 + 0.4 * k))), (halo.get_width() // 2, halo.get_height() // 2), rad, 8)
+            screen.blit(halo, (cx - halo.get_width() // 2, cy - halo.get_height() // 2))
         por = self.portraits[slot]
         if slot == 1:
             por = pygame.transform.flip(por, True, False)

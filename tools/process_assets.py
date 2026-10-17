@@ -39,6 +39,9 @@ CHARS = {
     "reno": dict(stance_h=396,
                  loco="Pixel Art Fighting Sprite Sheet", attacks="Pixel Fighter Animation Sprite Sheet",
                  reactions="Pixel Art Fighting Game Sprite Sheet", extras="Pixel Art Fighting Game Sprite Sheet-2"),
+    "emperor": dict(stance_h=396,
+                    loco="Hollow Emperor Locomotion", attacks="Hollow Emperor Attacks",
+                    reactions="Hollow Emperor Reactions", extras="Hollow Emperor Extras"),
     "mira": dict(stance_h=406,
                  loco="Silver-Haired Mystic Fighter Sprite Sheet", attacks="Pixel-Art Fighter Animation Sprite Sheet",
                  reactions="Pixel Art Fighter Sprite Sheet", extras="Pixel Fighter Sprite Sheet_ Fall, Rise, Victory"),
@@ -516,13 +519,209 @@ def process_stages_ui(report):
     json.dump({"stages": [{"id": s[0], "name": s[2]} for s in stages]}, open(os.path.join(OUT, "stages", "meta.json"), "w"))
 
 
+def _slice_row_by_cells(im, n=8):
+    """Splits a single row of n frames. Every connected blob (flames, thrown daggers, loose hands) is kept WHOLE and given
+    to the grid cell most of it lies in, so no frame gets a clipped limb or a piece of its neighbour.
+    Returns [(x0, y0, x1, y1, mask)] per frame, mask = this frame's pixels in sheet coordinates."""
+    alpha = np.asarray(im)[..., 3] > 24
+    Hh, Wd = alpha.shape
+    cw = Wd / n
+    lab, cnt = ndimage.label(ndimage.binary_dilation(alpha, iterations=4))
+    owner = np.where(alpha, lab, 0)
+    cells = np.full(owner.shape, -1, dtype=np.int16)
+    xs_all = np.arange(Wd)[None, :].repeat(Hh, 0)
+    col_cell = np.minimum(n - 1, (xs_all / cw).astype(np.int16))
+    sizes = np.bincount(owner.ravel(), minlength=cnt + 1)
+    BIG = 2500
+    for comp in range(1, cnt + 1):
+        if sizes[comp] < BIG:
+            continue
+        m = owner == comp
+        counts = np.bincount(col_cell[m], minlength=n)
+        main = counts.argmax()
+        strong = [c for c in range(n) if counts[c] >= max(2500, 0.09 * counts.sum())]
+        if len(strong) <= 1:
+            cells[m] = main                                       # the whole blob belongs to one frame
+        else:                                                     # two frames touch: cut at the emptiest column of this blob
+            colsum = m.sum(0)
+            assigned = np.full(Wd, strong[0], dtype=np.int16)
+            for c0, c1 in zip(strong[:-1], strong[1:]):
+                lo, hi = int(cw * (c0 + 0.5)), int(cw * (c1 + 0.5))
+                cut = lo + int(np.argmin(colsum[lo:hi + 1]))
+                assigned[cut:] = c1
+            cells[m] = assigned[xs_all[m]]
+    # small blobs (loose hands, daggers, flame tips, speckles) go to the frame of the nearest big body, not to the grid cell they sit in
+    body = cells >= 0
+    dist, (iy, ix) = ndimage.distance_transform_edt(~body, return_indices=True)
+    for comp in range(1, cnt + 1):
+        if sizes[comp] >= BIG:
+            continue
+        m = owner == comp
+        if not m.any():
+            continue
+        d = dist[m]
+        if d.min() > 24:
+            continue                                              # a stray speck far from every body: drop it
+        near = cells[iy[m], ix[m]]
+        cells[m] = np.bincount(near[near >= 0], minlength=n).argmax() if (near >= 0).any() else -1
+    out = []
+    for c in range(n):
+        mk = (cells == c) & alpha
+        if not mk.any():
+            continue
+        # keep only the body and what is attached to it: pieces of a neighbour's arm that a cut left behind are dropped
+        l2, k2 = ndimage.label(ndimage.binary_dilation(mk, iterations=9))
+        if k2 > 1:
+            sizes2 = np.bincount(l2[mk], minlength=k2 + 1)
+            mk = mk & (l2 == sizes2[1:].argmax() + 1)
+        l3, k3 = ndimage.label(mk, structure=np.ones((3, 3)))          # loose specks and slivers that touch nothing
+        if k3 > 1:
+            sz3 = np.bincount(l3.ravel())
+            keep = [i for i in range(1, k3 + 1) if sz3[i] >= 900]
+            mk = np.isin(l3, keep) if keep else mk
+        ys, xs = np.where(mk)
+        out.append((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1, mk))
+    return out
+
+
+def slice_row(im, n=8):
+    """Splits a single row of n frames. The n biggest blobs are the bodies (left to right = frame 1..n); every other blob
+    (a hand, a dagger, flame tips) goes to the NEAREST body, so a limb reaching towards the next frame is never cut or lent out.
+    Falls back to the grid-cell method when the bodies touch each other."""
+    alpha = np.asarray(im)[..., 3] > 24
+    for dil in (2, 1, 0):                                         # touching bodies: look at the picture with less and less blur
+        lab, cnt = ndimage.label(ndimage.binary_dilation(alpha, iterations=dil) if dil else alpha)
+        owner = np.where(alpha, lab, 0)
+        sizes = np.bincount(owner.ravel(), minlength=cnt + 1)
+        sizes[0] = 0
+        top = np.argsort(sizes)[::-1][:n]
+        if cnt >= n and sizes[top].min() >= 0.30 * sizes[top].max():
+            break
+    else:
+        return _slice_row_by_cells(im, n)
+    xs_all = np.arange(alpha.shape[1])[None, :].repeat(alpha.shape[0], 0)
+    cx = [float(xs_all[owner == t].mean()) for t in top]
+    order = [top[i] for i in np.argsort(cx)]                       # body label per frame, left to right
+    body_frame = np.full(cnt + 1, -1, dtype=np.int16)
+    for f, t in enumerate(order):
+        body_frame[t] = f
+    cells = np.full(owner.shape, -1, dtype=np.int16)
+    body = body_frame[owner] >= 0
+    cells[body & alpha] = body_frame[owner][body & alpha]
+    dist, (iy, ix) = ndimage.distance_transform_edt(~body, return_indices=True)
+    rest = alpha & ~body
+    cells[rest] = cells[iy[rest], ix[rest]]
+    out = []
+    for c in range(n):
+        mk = (cells == c) & alpha
+        if not mk.any():
+            continue
+        l3, k3 = ndimage.label(mk, structure=np.ones((3, 3)))        # drop loose slivers that touch nothing of this frame
+        if k3 > 1:
+            sz3 = np.bincount(l3.ravel())
+            keep = [i for i in range(1, k3 + 1) if sz3[i] >= 900]
+            mk = np.isin(l3, keep) if keep else mk
+        ys, xs = np.where(mk)
+        out.append((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1, mk))
+    return out
+
+
+# A reaching hand that sits closer to the previous body than to its own: (from frame, to frame), 0-based.
+HAND_FIXES = {"brutus": [(3, 4)]}
+
+
+def move_loose_parts(boxes, a, b):
+    """Gives the pieces of frame a that are not attached to its main body to frame b."""
+    if a >= len(boxes) or b >= len(boxes):
+        return boxes
+    mka, mkb = boxes[a][4].copy(), boxes[b][4].copy()
+    lab, k = ndimage.label(mka, structure=np.ones((3, 3)))
+    if k < 2:
+        return boxes
+    sizes = np.bincount(lab.ravel())
+    sizes[0] = 0
+    main = sizes.argmax()
+    loose = (lab > 0) & (lab != main)
+    mka &= ~loose
+    mkb |= loose
+    out = list(boxes)
+    for idx, mk in ((a, mka), (b, mkb)):
+        ys, xs = np.where(mk)
+        out[idx] = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1, mk)
+    return out
+
+
+def process_dances(report, only=None):
+    """Victory-dance sheets -> data/characters/<id>/dance/*.
+    Either one sheet  Assets/dance/<id>.png  (8 frames)  or two  <id>_1.png + <id>_2.png  (8 + 8 = 16 frames, smoother)."""
+    ddir = os.path.join(SRC, "dance")
+    if not os.path.isdir(ddir):
+        return
+    files = {}
+    for fn in sorted(os.listdir(ddir)):
+        base, ext = os.path.splitext(fn)
+        if ext.lower() != ".png":
+            continue
+        cid, _, part = base.partition("_")
+        files.setdefault(cid, {})[int(part) if part.isdigit() else 0] = fn
+    for cid, parts in sorted(files.items()):
+        if only and cid != only:
+            continue
+        cdir = os.path.join(OUT, "characters", cid)
+        meta_path = os.path.join(cdir, "meta.json")
+        if not os.path.exists(meta_path):
+            continue
+        meta = json.load(open(meta_path))
+        names = [parts[k] for k in sorted(parts) if k > 0] or [parts[0]]      # the two-part set wins over an old single sheet
+        idle_h = float(np.median([m["h"] for m in meta["anims"]["idle"]]))
+        adir = os.path.join(cdir, "dance")
+        shutil.rmtree(adir, ignore_errors=True)
+        os.makedirs(adir)
+        lst, k, idx = [], None, 0
+        for fn in names:
+            im = Image.open(os.path.join(ddir, fn)).convert("RGBA")
+            boxes = slice_row(im, 8)
+            for a_, b_ in HAND_FIXES.get(cid, []):
+                if fn == names[0] or len(names) == 1:
+                    boxes = move_loose_parts(boxes, a_, b_)
+            arr = np.asarray(im)
+            if k is None:                                              # the first (standing) frame becomes as tall as this character's idle pose
+                k = idle_h / (boxes[0][3] - boxes[0][1])
+            base = float(np.median([bx[3] for bx in boxes]))           # common ground line of this sheet
+            for (x0, y0, x1, y1, mk) in boxes:
+                piece = arr[y0:y1, x0:x1].copy()
+                piece[..., 3] = np.where(mk[y0:y1, x0:x1], piece[..., 3], 0)      # only this frame's own blobs
+                crop = clean_alpha(Image.fromarray(piece, "RGBA"))
+                w, h = crop.size
+                sub = mk[y0:y1, x0:x1]
+                low = sub[max(0, int(sub.shape[0] * 0.86)):]            # the feet stay planted, so the body does not slide while the arms move
+                fx = np.where(low.any(0))[0]
+                gc = (float(fx.mean()) if len(fx) else sub.shape[1] / 2) * k
+                crop = crop.resize((max(1, round(w * k)), max(1, round(h * k))), Image.LANCZOS)
+                crop.save(os.path.join(adir, f"{idx}.png"))
+                lst.append({"w": crop.size[0], "h": crop.size[1], "ox": -gc, "oy": -(base - y0) * k})
+                idx += 1
+        meta["anims"]["dance"] = lst
+        json.dump(meta, open(meta_path, "w"), indent=1)
+        report.append(f"   {cid}/dance: {len(lst)} frames from {len(names)} sheet(s) (scale {k:.2f})")
+
+
 def main():
     report = []
     only = sys.argv[1:]
+    for arg in only:
+        if arg.startswith("char:"):                       # e.g.  process_assets.py char:emperor
+            print("processing", arg[5:])
+            process_character(arg[5:], CHARS[arg[5:]], report)
+            process_dances(report, arg[5:])
+            print("\n".join(report) or "all good")
+            return
     if not only or "chars" in only:
         for cid, cfg in CHARS.items():
             print("processing", cid)
             process_character(cid, cfg, report)
+    if not only or "chars" in only or "dance" in only:
+        process_dances(report)
     if not only or "fx" in only:
         process_fx(report)
     if not only or "supers" in only:
@@ -537,7 +736,7 @@ def main():
 SUPER_SHEETS = {
     "kaito": "16-Bit Dragon Fire Projectile Sprite Sheet", "brutus": "Molten Fist Impact Sprite Sheet",
     "valeria": "Fiery Tornado Sprite Sheet", "mira": "Electric Blue Lightning Sprite Sheet",
-    "rudra": "Fiery Tiger Attack Sprite Sheet", "reno": "Neon R Energy Sprite Sheet",
+    "rudra": "Fiery Tiger Attack Sprite Sheet", "reno": "Neon R Energy Sprite Sheet", "emperor": "Neon R Energy Sprite Sheet",
 }
 AURA_SHEET = "Golden Aura and Shockwave Sprite Sheet"
 
