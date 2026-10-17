@@ -175,6 +175,8 @@ class App:
         return n > 2500
 
     def draw_pad_toast(self):
+        if getattr(self.args, "headless", False) or getattr(self.args, "shot", None):
+            return
         msg, left = PADS.toast
         if left > 0:
             PADS.toast = (msg, left - 1)
@@ -225,6 +227,8 @@ class App:
         return panel
 
     def draw_pad_help(self):
+        if getattr(self.args, "headless", False) or getattr(self.args, "shot", None):
+            return
         if PADS.help <= 0:
             return
         PADS.help -= 1
