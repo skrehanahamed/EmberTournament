@@ -1,0 +1,35 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+.buildenv/
+venv/
+env/
+
+# PyInstaller & Build artifacts
+build/
+dist/
+*.spec
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# Editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary test logs and outputs
+/tmp/ember_*
+ember_selftest.txt

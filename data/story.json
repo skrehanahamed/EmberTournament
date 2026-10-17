@@ -1,0 +1,244 @@
+{
+ "title": "EMBER TOURNAMENT",
+ "prologue": [
+  "When the last dragon died, its heart broke into five Ember Cores. Whoever holds all five can call the dragon's fire back.",
+  "Every hundred years, the Ember Tournament decides who is worthy. This year, the invitations were sent by the Hollow Emperor, whom nobody has ever seen.",
+  "Reno never wanted to be a fighter. He ran a small repair shop in a quiet town.",
+  "One rainy night, while he was fixing a broken radio, an envelope slid under his door. Black wax. A stamp in the shape of an R.",
+  "\"You have been chosen. The Ember Tournament begins at dawn.\"  Reno laughed, and threw it in the bin.",
+  "By morning it was back on his workbench. And his right hand was glowing violet.",
+  "Far across the valley, the rooftops of his town were on fire.  Reno took a breath.  \"Okay. Fine. I'll go.\""
+ ],
+ "chapters": [
+  {
+   "id": 1,
+   "title": "The Volcano Gates",
+   "place": "The volcano arena, at dawn",
+   "stage": "volcano",
+   "opponent": null,
+   "before": [
+    {
+     "who": "narrator",
+     "text": "Reno arrives among legends. He is the only one without a weapon, a title, or a reputation."
+    },
+    {
+     "who": "voice",
+     "text": "Five Cores. Six fighters. One keeper."
+    },
+    {
+     "who": "narrator",
+     "text": "A guard glances at the glowing R on his hand, and says nothing."
+    }
+   ],
+   "after": []
+  },
+  {
+   "id": 2,
+   "title": "The Monk",
+   "place": "Neon City",
+   "stage": "neon",
+   "opponent": "kaito",
+   "before": [
+    {
+     "who": "narrator",
+     "text": "Kaito carries a broken sword hilt, and watches Reno with sad eyes."
+    },
+    {
+     "who": "kaito",
+     "text": "You glow like the dragon's fire. My master glowed like that once. Then he vanished."
+    },
+    {
+     "who": "reno",
+     "text": "I don't even know what I'm doing here."
+    },
+    {
+     "who": "kaito",
+     "text": "Then fight honestly. That is all anyone can do."
+    }
+   ],
+   "after": [
+    {
+     "who": "kaito",
+     "text": "Don't let them make you hollow."
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "title": "The Thief",
+   "place": "Sunset Shrine",
+   "stage": "temple",
+   "opponent": "valeria",
+   "before": [
+    {
+     "who": "narrator",
+     "text": "Valeria has already stolen the first Core. She doesn't hide it."
+    },
+    {
+     "who": "valeria",
+     "text": "My kingdom is dying of thirst. Stay out of my way."
+    },
+    {
+     "who": "reno",
+     "text": "I'd give you the Core if I had it."
+    },
+    {
+     "who": "valeria",
+     "text": "Liar. Everyone here is hiding something."
+    }
+   ],
+   "after": [
+    {
+     "who": "narrator",
+     "text": "She leaves her dagger behind without a word."
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "title": "The Storm",
+   "place": "Volcanic Ruins",
+   "stage": "volcano",
+   "opponent": "mira",
+   "before": [
+    {
+     "who": "narrator",
+     "text": "Lightning crawls over the ruins. Mira stops mid-storm when she sees his hand."
+    },
+    {
+     "who": "mira",
+     "text": "The storms whisper of an R. They say it will end him."
+    },
+    {
+     "who": "reno",
+     "text": "I'm a repairman, Mira."
+    },
+    {
+     "who": "mira",
+     "text": "Then repair this."
+    }
+   ],
+   "after": [
+    {
+     "who": "mira",
+     "text": "The Emperor was once a champion. The Cores burned the heart out of him."
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "title": "The Champion",
+   "place": "Neon City",
+   "stage": "neon",
+   "opponent": "brutus",
+   "before": [
+    {
+     "who": "narrator",
+     "text": "Brutus blocks the corridor, still angry that the crowds forgot him."
+    },
+    {
+     "who": "brutus",
+     "text": "The throne is mine. I've bled for it."
+    },
+    {
+     "who": "reno",
+     "text": "What if there is no throne? What if it's a trap?"
+    },
+    {
+     "who": "brutus",
+     "text": "Then I'll die proving it, runt."
+    }
+   ],
+   "after": [
+    {
+     "who": "narrator",
+     "text": "Brutus laughs for the first time in years."
+    },
+    {
+     "who": "brutus",
+     "text": "The crowd will cheer for you, kid."
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "title": "The River",
+   "place": "Sunset Shrine",
+   "stage": "temple",
+   "opponent": "rudra",
+   "before": [
+    {
+     "who": "narrator",
+     "text": "At the last gate waits Rudra, still wet from the flood."
+    },
+    {
+     "who": "rudra",
+     "text": "My people are drowning. The Cores can turn the river."
+    },
+    {
+     "who": "reno",
+     "text": "We want the same thing. Why are we fighting?"
+    },
+    {
+     "who": "rudra",
+     "text": "Because only one of us walks through that door."
+    }
+   ],
+   "after": [
+    {
+     "who": "rudra",
+     "text": "Whatever is inside, don't go alone."
+    },
+    {
+     "who": "narrator",
+     "text": "Reno turns. Kaito, Valeria, Mira and Brutus stand behind him. None of them has taken a Core. They were waiting for him."
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "title": "The Hollow Emperor",
+   "place": "The Emperor's temple",
+   "stage": "volcano",
+   "opponent": "reno",
+   "boss": true,
+   "before": [
+    {
+     "who": "narrator",
+     "text": "The Emperor appears as a dark, burning copy of Reno, with black-violet fire where the R should glow."
+    },
+    {
+     "who": "emperor",
+     "text": "I only wanted the fire back. I only wanted to be whole."
+    },
+    {
+     "who": "reno",
+     "text": "Nobody is whole. We just fix what we can."
+    }
+   ],
+   "after": [
+    {
+     "who": "narrator",
+     "text": "The Emperor falls to his knees."
+    },
+    {
+     "who": "emperor",
+     "text": "Why... didn't you take them?"
+    },
+    {
+     "who": "reno",
+     "text": "Because I fix things. I don't break them."
+    }
+   ]
+  }
+ ],
+ "epilogue": [
+  "The five Cores rise and settle in Reno's glowing hand. He does not keep them.",
+  "One by one, he gives each fighter what they came for. Kaito learns his master's name is carved inside the Core: his master stayed, to keep the dragon's heart whole.",
+  "Valeria feels rain on her face for the first time in years. Mira hears the storms go quiet.",
+  "Brutus hears the crowd chanting, and decides he would rather have friends than a throne. Rudra watches the river turn back toward the sea.",
+  "The glow fades from Reno's hand. He walks home, picks up the radio, and finishes fixing it.",
+  "On the workbench, a new envelope waits, sealed in gold wax:  \"To the next Keeper: Reno.\"",
+  "THE END"
+ ]
+}
