@@ -12,7 +12,7 @@
     <a href="#-quick-download-windows-exe"><img src="https://img.shields.io/badge/Platform-Windows%20x64%20|%20macOS%20|%20Linux-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Platform Support" /></a>
     <a href="https://github.com"><img src="https://img.shields.io/badge/Python-3.10%20|%203.11%20|%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" /></a>
     <a href="https://pyga.me"><img src="https://img.shields.io/badge/Engine-pygame--ce-ED2939?style=for-the-badge" alt="Pygame-CE" /></a>
-    <a href=".github/workflows/windows-exe.yml"><img src="https://img.shields.io/badge/CI%2FCD-Automated%20EXE%20Build-2ea44f?style=for-the-badge&logo=github-actions&logoColor=white" alt="GitHub Actions" /></a>
+    <a href="https://github.com/skrehanahamed/EmberTournament/actions/workflows/windows-exe.yml"><img src="https://github.com/skrehanahamed/EmberTournament/actions/workflows/windows-exe.yml/badge.svg" alt="Build Windows EXE" /></a>
     <img src="https://img.shields.io/badge/Display-1080p%20%40%2060%20FPS-FF8C00?style=for-the-badge" alt="Resolution" />
   </p>
 
@@ -176,8 +176,8 @@ You do **not** need Python installed to play the pre-compiled Windows version:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo-name>.git
-cd <your-repo-name>
+git clone https://github.com/skrehanahamed/EmberTournament.git
+cd EmberTournament
 ```
 
 ### 2. Set Up Virtual Environment
@@ -254,7 +254,7 @@ git add .
 git commit -m "Initial commit: Ember Tournament 1080p fighting game"
 
 # 4. Create a new repository on github.com, then connect your local repo
-git remote add origin https://github.com/<YOUR-GITHUB-USERNAME>/<YOUR-REPOSITORY-NAME>.git
+git remote add origin https://github.com/skrehanahamed/EmberTournament.git
 
 # 5. Push code to GitHub
 git push -u origin main
