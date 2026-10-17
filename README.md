@@ -136,7 +136,6 @@ Six unique martial artists with distinct archetypes, hitboxes, frame data, and s
 | <img src="docs/images/portraits/valeria.png" width="90" height="90" alt="Valeria"/> <br/> **VALERIA** | **Rushdown** | A desert assassin wielding crimson embers. Blistering walk speed and relentless offensive pressure. | **Super**: *Crimson Tempest*<br/>**Finisher**: *Crimson Desert Storm* |
 | <img src="docs/images/portraits/rudra.png" width="90" height="90" alt="Rudra"/> <br/> **RUDRA** | **Brawler** | Bengal's Iron Fist. A delta wrestler whose sacred flames empower devastating close-combat barrages. | **Super**: *Tiger Roar*<br/>**Finisher**: *Bengal Tiger Flame* |
 | <img src="docs/images/portraits/mira.png" width="90" height="90" alt="Mira"/> <br/> **MIRA** | **Zoner** | Storm mage controlling the battlefield from afar with high-velocity electric projectiles and long reach. | **Super**: *Storm Caller*<br/>**Finisher**: *Thunder Judgement* |
-| <img src="docs/images/portraits/emperor.png" width="90" height="90" alt="The Hollow Emperor"/> <br/> **HOLLOW EMPEROR** | **Final Boss** | A dark, burning manifestation of pure void flame. Massive health bar, devastating combos, and terrifying screen control. | **Super**: *Void R-Sign*<br/>**Finisher**: *Hollow Eclipse* |
 
 ---
 
@@ -151,8 +150,7 @@ Six unique martial artists with distinct archetypes, hitboxes, frame data, and s
 
 ## Game Modes
 
-* **Arcade Story Mode**: Embark on a 7-chapter narrative journey as Reno. Battle through the tournament ranks, uncover the secret of the Dragon Cores, and defeat the Hollow Emperor in a climactic showdown. Features voiced dialogue and chapter art.
-* **Boss Encounter (`make dev-boss` or `--boss`)**: Jump directly into a final battle against The Hollow Emperor.
+* **Arcade Story Mode**: Embark on a 7-chapter narrative journey as Reno. Battle through the tournament ranks, uncover the truth of the Dragon Cores, and fight for the throne in a climactic showdown. Features voiced dialogue and chapter art.
 * **Versus CPU**: Test your skills against computer-controlled opponents across three selectable difficulty levels (*Easy*, *Normal*, *Hard*).
 * **Versus 2-Player (Local)**: Challenge a friend locally on a shared keyboard or dual controllers.
 * **CPU vs CPU**: Watch AI combatants battle it out in demonstration mode.
