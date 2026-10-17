@@ -32,25 +32,44 @@
 
 ## Releases and Downloads
 
-Pre-compiled Windows builds are automatically compiled and published through GitHub Actions. Python installation is not required to play.
+Pre-compiled Windows binaries are automatically packaged and published via GitHub Actions. Python installation is not required.
 
-* **Latest Release**: [Download from GitHub Releases](https://github.com/skrehanahamed/EmberTournament/releases/latest)
-* **All Releases & Build Artifacts**: [View All Releases](https://github.com/skrehanahamed/EmberTournament/releases)
+* **Latest Release**: [Download Ember Tournament (Latest Build)](https://github.com/skrehanahamed/EmberTournament/releases/latest)
+* **All Releases and Changelog**: [View All Releases](https://github.com/skrehanahamed/EmberTournament/releases)
 
-### Available Release Files
+### Available Packages
 
-| File | Description | Recommended For |
+| Package | Description | Recommended For |
 | :--- | :--- | :--- |
-| **`EmberTournament-Windows-x64.zip`** | Complete standalone package with game executable, assets, audio, and dependencies. | **Recommended**: Extract and double-click `EmberTournament.exe` to play. |
-| **`EmberTournament.exe`** | Standalone Windows application binary. | Direct executable file. |
+| **`EmberTournament-Windows-x64.zip`** | Full standalone package. Contains `EmberTournament.exe`, internal dependencies, stages, character art, and audio files. | **Recommended**: Extract and double-click `EmberTournament.exe` to play immediately. |
+| **`EmberTournament.exe`** | Standalone executable binary with built-in asset recovery. | Direct executable file. If assets are not present in the local directory, it will prompt to automatically download them from GitHub on first launch. |
+
+### System Requirements
+
+| Specification | Minimum Requirement | Recommended |
+| :--- | :--- | :--- |
+| **Operating System** | Windows 10 (64-bit) | Windows 10 / Windows 11 (64-bit) |
+| **Processor** | Intel Core i3 / AMD Ryzen 3 | Intel Core i5 / AMD Ryzen 5 |
+| **Memory** | 4 GB RAM | 8 GB RAM |
+| **Graphics** | DirectX 11 / OpenGL 3.3 compatible | Dedicated GPU or modern integrated graphics |
+| **Storage** | 350 MB available space | 500 MB available space |
+| **Audio** | Any DirectX-compatible sound output | Stereo speakers / headphones |
+| **Input Devices** | Standard Keyboard | PS5 DualSense / Xbox Controller |
 
 ### How to Install and Play on Windows
 
 1. Download **`EmberTournament-Windows-x64.zip`** from the [Latest Release](https://github.com/skrehanahamed/EmberTournament/releases/latest).
-2. Right-click the downloaded `.zip` file and select **Extract All...**.
-3. Open the extracted folder and double-click **`EmberTournament.exe`** to launch the game.
+2. Right-click the `.zip` archive and select **Extract All...**.
+3. Open the extracted folder and double-click **`EmberTournament.exe`** to start playing.
+4. *(Optional)* Plug in a PlayStation or Xbox controller — it will be detected automatically with full button prompt mapping and rumble feedback.
 
-You can also download individual build artifacts directly from completed runs in the [Actions tab](https://github.com/skrehanahamed/EmberTournament/actions).
+> **Windows SmartScreen Note**: Because this is an indie open-source game without an expensive corporate signing certificate, Windows Defender SmartScreen may display a "Windows protected your PC" pop-up. Simply click **"More info"** and then **"Run anyway"**.
+
+### Automatic Asset Recovery
+
+If you ever move `EmberTournament.exe` to a new folder without its `data/` assets, or if any core files are missing, the built-in self-healing system will automatically detect the missing components, prompt for confirmation, and download them directly from GitHub Releases without requiring a full manual re-download.
+
+You can also download build artifacts directly from the [Actions tab](https://github.com/skrehanahamed/EmberTournament/actions).
 
 ---
 
